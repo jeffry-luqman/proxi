@@ -1,0 +1,10 @@
+# port diisi dengan aplikasi ini ingin berjalan di port berapa
+port: 8080
+
+# debug diisi true untuk menampilkan request yang dipanggil ke target
+debug: true
+
+# targets diisi dengan masing-masing path ingin diarahkan ke url mana
+targets:
+  /: http://localhost:3001
+  /api: http://localhost:4001
