@@ -1,10 +1,46 @@
 # port diisi dengan aplikasi ini ingin berjalan di port berapa
-port: 8080
-
-# debug diisi true untuk menampilkan request yang dipanggil ke target
-debug: true
+port: 8181
 
 # targets diisi dengan masing-masing path ingin diarahkan ke url mana
 targets:
   /: http://localhost:3001
   /api: http://localhost:4001
+
+log:
+  console:
+    # enable print a log to the terminal
+    enable: true
+
+    # print a request log to the terminal without waiting for a response
+    print_request_immediately: false
+
+  file:
+    # enable save log to file
+    enable: true
+
+    # log file filename
+    filename: "proxi.log"
+
+    # if false log rotation filename will be use UTC time
+    use_local_time: true
+
+    # max size in MB
+    max_size: 100
+
+    # max age in days
+    max_age: 7
+
+    # max backup files
+    max_backups: 0
+
+    # include request headers to log
+    include_request_headers: false
+
+    # include request body to log
+    include_request_body: false
+
+    # include response headers to log
+    include_response_headers: false
+
+    # include response body to log
+    include_response_body: false
