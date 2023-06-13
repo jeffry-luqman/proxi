@@ -64,7 +64,7 @@ func handler(c *fasthttp.RequestCtx) {
 	}
 	c.Request.Header.Del("Connection")
 
-	ctx := newCtx(&c.Request, originalURL)
+	ctx := newCtx(&c.Request, originalURL, addr)
 	err := client.Do(&c.Request, &c.Response)
 	ctx.logging(&c.Response, err)
 

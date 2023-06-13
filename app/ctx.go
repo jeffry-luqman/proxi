@@ -10,37 +10,35 @@ import (
 )
 
 type Ctx struct {
-	StartAt        time.Time
-	FinishAt       time.Time
-	Duration       time.Duration
-	Method         string
-	EndPoint       string
-	CompleteURL    string
-	Header         map[string]string
-	Body           string
-	StatusCode     int
-	ResponseHeader map[string]string
-	ResponseBody   string
+	StartAt     time.Time
+	FinishAt    time.Time
+	Duration    time.Duration
+	Method      string
+	EndPoint    string
+	CompleteURL string
+	Header      map[string]string
+	Body        []byte
+	StatusCode  int
 }
 
-func newCtx(req *fasthttp.Request, originalURL string) *Ctx {
+func newCtx(req *fasthttp.Request, originalURL, completeURL string) *Ctx {
 	c := &Ctx{
 		StartAt:     time.Now(),
 		Method:      string(req.Header.Method()),
-		CompleteURL: string(req.RequestURI()),
+		CompleteURL: completeURL,
 	}
 	c.EndPoint, _, _ = strings.Cut(originalURL, "?")
-	c.Header = map[string]string{}
 	if config.Log.File.IncludeRequestHeaders {
+		c.Header = map[string]string{}
 		req.Header.VisitAll(func(key, value []byte) {
 			c.Header[string(key)] = string(value)
 		})
 	}
 	if config.Log.File.IncludeRequestBody {
-		c.Body = string(req.Body())
+		c.Body = req.Body()
 	}
 	if config.Log.Console.Enable && config.Log.Console.PrintRequestImmediately {
-		fmt.Println(c.StartAt.String() + "\n" + c.fmtMethod() + "\t" + c.fmtURL())
+		fmt.Println(c.StartAt.Format(time.TimeOnly) + "\t" + c.fmtMethod() + "\t" + c.fmtURL())
 	}
 
 	return c
@@ -51,20 +49,54 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 	c.Duration = c.FinishAt.Sub(c.StartAt).Round(time.Millisecond)
 	c.StatusCode = res.Header.StatusCode()
 	if config.Log.Console.Enable {
-		fmt.Println(c.fmtStatus() + "\t" + c.fmtDuration() + "\t" + c.fmtMethod() + "\t" + c.fmtURL())
-	}
-	c.ResponseHeader = map[string]string{}
-	if config.Log.File.IncludeResponseHeaders {
-		res.Header.VisitAll(func(key, value []byte) {
-			c.ResponseHeader[string(key)] = string(value)
-		})
-	}
-	if config.Log.File.IncludeResponseBody {
-		c.ResponseBody = string(res.Body())
+		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + c.CompleteURL
+		if err != nil {
+			consoleLog += "\t" + Fmt(err.Error(), Red)
+		}
+		fmt.Println(consoleLog)
 	}
 	if config.Log.File.Enable {
-		fileLogger.Info().Msg(c.Method + "\t" + c.CompleteURL)
+		logger := fileLogger.Log().
+			Time("start", c.StartAt).
+			Time("finish", c.FinishAt).
+			Dur("duration", c.Duration).
+			Str("method", c.Method).
+			Str("endpoint", c.EndPoint).
+			Str("url", c.CompleteURL).
+			Int("status", c.StatusCode).
+			Str("level", c.level(err))
+		if config.Log.File.IncludeRequestHeaders {
+			logger = logger.Any("headers", c.Header)
+		}
+		if config.Log.File.IncludeRequestBody {
+			logger = logger.Bytes("body", c.Body)
+		}
+		if config.Log.File.IncludeResponseHeaders {
+			responseHeader := map[string]string{}
+			res.Header.VisitAll(func(key, value []byte) {
+				responseHeader[string(key)] = string(value)
+			})
+			logger = logger.Any("res_headers", responseHeader)
+		}
+		if config.Log.File.IncludeResponseBody {
+			logger = logger.Bytes("res_body", res.Body())
+		}
+		logger.Send()
 	}
+}
+
+func (c *Ctx) level(err error) string {
+	if err != nil {
+		return "error"
+	}
+	if c.StatusCode >= http.StatusOK {
+		if c.StatusCode < http.StatusBadRequest {
+			return "info"
+		} else if c.StatusCode < http.StatusInternalServerError {
+			return "warning"
+		}
+	}
+	return "error"
 }
 
 func (c *Ctx) fmtMethod() string {
