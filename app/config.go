@@ -24,9 +24,11 @@ var config = Config{
 }
 
 type Config struct {
-	Port    int               `yaml:"port"`
-	Targets map[string]string `yaml:"targets"`
-	Log     LogConfig         `yaml:"log"`
+	Port      int               `yaml:"port"`
+	UseStdlib bool              `yaml:"us_stdlib"`
+	Targets   map[string]string `yaml:"targets"`
+	Log       LogConfig         `yaml:"log"`
+	Metric    MetricConfig      `yaml:"metric"`
 }
 
 type LogConfig struct {
@@ -50,4 +52,9 @@ type LogFileConfig struct {
 	IncludeRequestBody     bool   `yaml:"include_request_body"`
 	IncludeResponseHeaders bool   `yaml:"include_response_headers"`
 	IncludeResponseBody    bool   `yaml:"include_response_body"`
+}
+
+type MetricConfig struct {
+	Enable bool `yaml:"enable"`
+	Port   int  `yaml:"port"`
 }

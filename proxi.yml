@@ -1,7 +1,7 @@
-# port diisi dengan aplikasi ini ingin berjalan di port berapa
+# proxi port
 port: 8181
 
-# targets diisi dengan masing-masing path ingin diarahkan ke url mana
+# target url for each path prefix
 targets:
   /: http://localhost:3001
   /api: http://localhost:4001
@@ -44,3 +44,10 @@ log:
 
     # include response body to log
     include_response_body: false
+
+metric:
+  # enable metric
+  enable: true
+
+  # metric port
+  port: 8282

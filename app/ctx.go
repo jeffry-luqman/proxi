@@ -15,19 +15,30 @@ type Ctx struct {
 	Duration    time.Duration
 	Method      string
 	EndPoint    string
+	PathPrefix  string
+	BaseURL     string
 	CompleteURL string
 	Header      map[string]string
 	Body        []byte
 	StatusCode  int
+	Err         error
 }
 
-func newCtx(req *fasthttp.Request, originalURL, completeURL string) *Ctx {
+func newCtx(req *fasthttp.Request, originalURL, pathPrefix, completeURL string) *Ctx {
 	c := &Ctx{
 		StartAt:     time.Now(),
 		Method:      string(req.Header.Method()),
 		CompleteURL: completeURL,
 	}
+	c.PathPrefix = pathPrefix
 	c.EndPoint, _, _ = strings.Cut(originalURL, "?")
+	ep := strings.Split(c.EndPoint, "/")
+	id := ep[len(ep)-1]
+	if IsInteger(id) || IsUUID(id) {
+		c.EndPoint, _, _ = strings.Cut(c.EndPoint, id)
+	}
+
+	c.BaseURL, _, _ = strings.Cut(c.CompleteURL, c.EndPoint)
 	if config.Log.File.IncludeRequestHeaders {
 		c.Header = map[string]string{}
 		req.Header.VisitAll(func(key, value []byte) {
@@ -48,8 +59,9 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 	c.FinishAt = time.Now()
 	c.Duration = c.FinishAt.Sub(c.StartAt).Round(time.Millisecond)
 	c.StatusCode = res.Header.StatusCode()
+	c.Err = err
 	if config.Log.Console.Enable {
-		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + c.CompleteURL
+		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + c.BaseURL + c.EndPoint
 		if err != nil {
 			consoleLog += "\t" + Fmt(err.Error(), Red)
 		}
@@ -61,7 +73,8 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 			Time("finish", c.FinishAt).
 			Dur("duration", c.Duration).
 			Str("method", c.Method).
-			Str("endpoint", c.EndPoint).
+			Str("end_point", c.EndPoint).
+			Str("base_url", c.BaseURL).
 			Str("url", c.CompleteURL).
 			Int("status", c.StatusCode).
 			Str("level", c.level(err))
@@ -81,7 +94,10 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 		if config.Log.File.IncludeResponseBody {
 			logger = logger.Bytes("res_body", res.Body())
 		}
-		logger.Send()
+		go logger.Send()
+	}
+	if config.Metric.Enable {
+		go metric.Update(c)
 	}
 }
 
@@ -104,7 +120,7 @@ func (c *Ctx) fmtMethod() string {
 }
 
 func (c *Ctx) fmtURL() string {
-	return Fmt(c.CompleteURL, Cyan)
+	return Fmt(c.BaseURL+c.EndPoint, Cyan)
 }
 
 func (c *Ctx) fmtStatus() string {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/fasthttp/websocket"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -22,14 +23,16 @@ var (
 		NoDefaultUserAgentHeader: true,
 		DisablePathNormalizing:   true,
 	}
+	upgrader   = websocket.FastHTTPUpgrader{}
 	fileLogger = zerolog.Logger{}
 )
 
 func Run() {
+	fmt.Println("Starting " + Fmt("proxi "+Version, Green, BlinkSlow))
 	b, _ := os.ReadFile(ConfigFile)
 	err := yaml.Unmarshal(b, &config)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Fatal(Fmt(err.Error(), Red))
 	}
 
 	if config.Log.File.Enable {
@@ -42,13 +45,16 @@ func Run() {
 	}
 
 	port := fmt.Sprintf("%v", config.Port)
-	fmt.Println("Starting " + Fmt("proxi "+Version, Green))
-	fmt.Println("Please open " + Fmt("http://localhost:"+port, Blue, BlinkSlow) + " in browser")
+	fmt.Println()
+	fmt.Println("Proxi available at " + Fmt("http://localhost:"+port, Blue))
+	if config.Metric.Enable {
+		metric.Init()
+	}
 	server := &fasthttp.Server{
 		Handler: handler,
 	}
 	if err := server.ListenAndServe(":" + port); err != nil {
-		log.Fatal(err.Error())
+		log.Fatal("Server", Fmt(err.Error(), Red))
 	}
 }
 
@@ -56,7 +62,7 @@ func handler(c *fasthttp.RequestCtx) {
 	originalURL := string(c.Request.Header.RequestURI())
 	defer c.Request.SetRequestURI(originalURL)
 
-	addr := getURL(originalURL)
+	pathPrefix, addr := getURL(originalURL)
 	c.Request.SetRequestURI(addr)
 
 	if scheme := getScheme(addr); len(scheme) > 0 {
@@ -64,20 +70,20 @@ func handler(c *fasthttp.RequestCtx) {
 	}
 	c.Request.Header.Del("Connection")
 
-	ctx := newCtx(&c.Request, originalURL, addr)
+	ctx := newCtx(&c.Request, originalURL, pathPrefix, addr)
 	err := client.Do(&c.Request, &c.Response)
 	ctx.logging(&c.Response, err)
 
 	c.Response.Header.Del("Connection")
 }
 
-func getURL(originalURL string) string {
+func getURL(originalURL string) (string, string) {
 	for k, v := range config.Targets {
 		if k != "/" && strings.HasPrefix(originalURL, k) {
-			return v + originalURL
+			return k, v + originalURL
 		}
 	}
-	return config.Targets["/"] + originalURL
+	return "/", config.Targets["/"] + originalURL
 }
 
 func getScheme(s string) []byte {
