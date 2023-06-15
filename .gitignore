@@ -22,8 +22,5 @@ proxi-mac64
 # Go workspace file
 go.work
 
-# Go sum file
-go.sum
-
 # log file
 *.log
