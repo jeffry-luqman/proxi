@@ -213,7 +213,7 @@ func (m *Metric) Init() {
 	m.EndPointTotalDurationTotal = map[string]time.Duration{}
 	m.EndPointTotalLastCall = map[string]time.Time{}
 
-	metricPort := fmt.Sprintf("%v", config.Metric.Port)
+	metricPort := fmt.Sprintf("%v", Conf.Metric.Port)
 	fmt.Println()
 	fmt.Println("Metric available at " + Fmt("http://localhost:"+metricPort, Magenta))
 	go func() {

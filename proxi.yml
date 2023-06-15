@@ -6,6 +6,9 @@ targets:
   /: http://localhost:3001
   /api: http://localhost:4001
 
+# use net/http instead of fasthttp
+use_stdlib: false
+
 log:
   console:
     # enable print a log to the terminal

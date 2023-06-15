@@ -1,31 +1,24 @@
 package app
 
-var config = Config{
+var Conf = Config{
 	Port:    8181,
 	Targets: map[string]string{"/": "http://localhost:3000"},
 	Log: LogConfig{
 		Console: LogConsoleConfig{
-			Enable:                  true,
-			PrintRequestImmediately: false,
+			Enable: true,
 		},
 		File: LogFileConfig{
-			Enable:                 true,
-			Filename:               "proxi.log",
-			UseLocalTime:           true,
-			MaxSize:                100,
-			MaxAge:                 7,
-			MaxBackups:             0,
-			IncludeRequestHeaders:  false,
-			IncludeRequestBody:     false,
-			IncludeResponseHeaders: false,
-			IncludeResponseBody:    false,
+			UseLocalTime: true,
+			MaxSize:      100,
+			MaxAge:       7,
 		},
 	},
 }
 
 type Config struct {
 	Port      int               `yaml:"port"`
-	UseStdlib bool              `yaml:"us_stdlib"`
+	UseStdlib bool              `yaml:"use_stdlib"`
+	TargetStr string            `yaml:"-"`
 	Targets   map[string]string `yaml:"targets"`
 	Log       LogConfig         `yaml:"log"`
 	Metric    MetricConfig      `yaml:"metric"`
@@ -38,6 +31,7 @@ type LogConfig struct {
 
 type LogConsoleConfig struct {
 	Enable                  bool `yaml:"enable"`
+	Disable                 bool `yaml:"-"`
 	PrintRequestImmediately bool `yaml:"print_request_immediately"`
 }
 

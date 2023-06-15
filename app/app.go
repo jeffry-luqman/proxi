@@ -30,28 +30,45 @@ var (
 func Run() {
 	fmt.Println("Starting " + Fmt("proxi "+Version, Green, BlinkSlow))
 	b, _ := os.ReadFile(ConfigFile)
-	err := yaml.Unmarshal(b, &config)
+	err := yaml.Unmarshal(b, &Conf)
 	if err != nil {
 		log.Fatal(Fmt(err.Error(), Red))
 	}
-
-	if config.Log.File.Enable {
+	if Conf.TargetStr != "" {
+		for _, t := range strings.Split(Conf.TargetStr, ";") {
+			pathPrefix, targetURL, _ := strings.Cut(strings.Trim(t, " "), " ")
+			if pathPrefix != "" {
+				Conf.Targets[pathPrefix] = targetURL
+			}
+		}
+	}
+	if Conf.Log.Console.Disable {
+		Conf.Log.Console.Enable = false
+	}
+	if Conf.Log.File.Filename != "" {
+		Conf.Log.File.Enable = true
+	}
+	if Conf.Log.File.Enable {
 		fileLogger = zerolog.New(&lumberjack.Logger{
-			Filename:   config.Log.File.Filename,
-			MaxSize:    config.Log.File.MaxSize,
-			MaxAge:     config.Log.File.MaxAge,
-			MaxBackups: config.Log.File.MaxBackups,
+			Filename:   Conf.Log.File.Filename,
+			MaxSize:    Conf.Log.File.MaxSize,
+			MaxAge:     Conf.Log.File.MaxAge,
+			MaxBackups: Conf.Log.File.MaxBackups,
 		}).With().Timestamp().Logger()
 	}
-
-	port := fmt.Sprintf("%v", config.Port)
-	fmt.Println()
-	fmt.Println("Proxi available at " + Fmt("http://localhost:"+port, Blue))
-	if config.Metric.Enable {
+	if Conf.Metric.Port > 0 {
+		Conf.Metric.Enable = true
+	}
+	if Conf.Metric.Enable {
 		metric.Init()
 	}
+
+	port := fmt.Sprintf("%v", Conf.Port)
+	fmt.Println()
+	fmt.Println("Proxi available at " + Fmt("http://localhost:"+port, Blue))
 	server := &fasthttp.Server{
-		Handler: handler,
+		ReadBufferSize: 16384,
+		Handler:        handler,
 	}
 	if err := server.ListenAndServe(":" + port); err != nil {
 		log.Fatal("Server", Fmt(err.Error(), Red))
@@ -78,12 +95,12 @@ func handler(c *fasthttp.RequestCtx) {
 }
 
 func getURL(originalURL string) (string, string) {
-	for k, v := range config.Targets {
+	for k, v := range Conf.Targets {
 		if k != "/" && strings.HasPrefix(originalURL, k) {
 			return k, v + originalURL
 		}
 	}
-	return "/", config.Targets["/"] + originalURL
+	return "/", Conf.Targets["/"] + originalURL
 }
 
 func getScheme(s string) []byte {

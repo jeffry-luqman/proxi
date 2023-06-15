@@ -1,11 +1,15 @@
 package main
 
 import (
+	"embed"
 	"os"
 
 	"github.com/jeffry-luqman/proxi/app"
 	"github.com/spf13/cobra"
 )
+
+//go:embed all:ui
+var ui embed.FS
 
 func main() {
 	cmd := &cobra.Command{
@@ -16,10 +20,14 @@ func main() {
 			app.Run()
 		},
 	}
-	cmd.Flags().StringVarP(&app.ConfigFile, "file", "f", app.ConfigFile, "Proxi configuration file")
-	// cmd.Flags().StringVarP(&app.ConfigFile, "targets", "t", "", "Target URL for each prefix, delimited with comma, for example : \"/=https://example.com,/api=https://api.example.com\"")
-	// cmd.Flags().IntVarP(&app.Conf.Port, "port", "p", app.Conf.Port, "Port")
-	// cmd.Flags().BoolVarP(&app.Conf.Log.Console.Enable, "console-log-enabled", "c", app.Conf.Log.Console.Enable, "Console log enabled")
+	cmd.Flags().StringVarP(&app.ConfigFile, "config", "c", "", "Configuration file name, (default proxi.yml)\nSample config file: https://raw.githubusercontent.com/jeffry-luqman/proxi/main/proxi.yml")
+	cmd.Flags().IntVarP(&app.Conf.Port, "port", "p", app.Conf.Port, "Port")
+	cmd.Flags().StringVarP(&app.Conf.TargetStr, "targets", "t", "", "Target URL for each prefix, delimited with semicolon.\nEx: proxi -t \"/ https://example.com; /api https://api.example.com\"")
+	cmd.Flags().BoolVarP(&app.Conf.UseStdlib, "use-stdlib", "", app.Conf.UseStdlib, "Use net/http instead of fasthttp")
+	cmd.Flags().BoolVarP(&app.Conf.Log.Console.Disable, "quiet", "q", app.Conf.Log.Console.Disable, "Silence output on the terminal")
+	cmd.Flags().BoolVarP(&app.Conf.Log.Console.PrintRequestImmediately, "debug", "d", app.Conf.Log.Console.PrintRequestImmediately, "Print a request log to the terminal without waiting for a response")
+	cmd.Flags().StringVarP(&app.Conf.Log.File.Filename, "log", "l", "", "Specify log file")
+	cmd.Flags().IntVarP(&app.Conf.Metric.Port, "metric", "m", app.Conf.Metric.Port, "Specify metric port")
 	err := cmd.Execute()
 	if err != nil {
 		os.Exit(1)

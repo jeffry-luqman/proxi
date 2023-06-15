@@ -39,16 +39,16 @@ func newCtx(req *fasthttp.Request, originalURL, pathPrefix, completeURL string) 
 	}
 
 	c.BaseURL, _, _ = strings.Cut(c.CompleteURL, c.EndPoint)
-	if config.Log.File.IncludeRequestHeaders {
+	if Conf.Log.File.IncludeRequestHeaders {
 		c.Header = map[string]string{}
 		req.Header.VisitAll(func(key, value []byte) {
 			c.Header[string(key)] = string(value)
 		})
 	}
-	if config.Log.File.IncludeRequestBody {
+	if Conf.Log.File.IncludeRequestBody {
 		c.Body = req.Body()
 	}
-	if config.Log.Console.Enable && config.Log.Console.PrintRequestImmediately {
+	if Conf.Log.Console.Enable && Conf.Log.Console.PrintRequestImmediately {
 		fmt.Println(c.StartAt.Format(time.TimeOnly) + "\t" + c.fmtMethod() + "\t" + c.fmtURL())
 	}
 
@@ -60,14 +60,14 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 	c.Duration = c.FinishAt.Sub(c.StartAt).Round(time.Millisecond)
 	c.StatusCode = res.Header.StatusCode()
 	c.Err = err
-	if config.Log.Console.Enable {
+	if Conf.Log.Console.Enable {
 		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + c.BaseURL + c.EndPoint
 		if err != nil {
 			consoleLog += "\t" + Fmt(err.Error(), Red)
 		}
 		fmt.Println(consoleLog)
 	}
-	if config.Log.File.Enable {
+	if Conf.Log.File.Enable {
 		logger := fileLogger.Log().
 			Time("start", c.StartAt).
 			Time("finish", c.FinishAt).
@@ -78,25 +78,25 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 			Str("url", c.CompleteURL).
 			Int("status", c.StatusCode).
 			Str("level", c.level(err))
-		if config.Log.File.IncludeRequestHeaders {
+		if Conf.Log.File.IncludeRequestHeaders {
 			logger = logger.Any("headers", c.Header)
 		}
-		if config.Log.File.IncludeRequestBody {
+		if Conf.Log.File.IncludeRequestBody {
 			logger = logger.Bytes("body", c.Body)
 		}
-		if config.Log.File.IncludeResponseHeaders {
+		if Conf.Log.File.IncludeResponseHeaders {
 			responseHeader := map[string]string{}
 			res.Header.VisitAll(func(key, value []byte) {
 				responseHeader[string(key)] = string(value)
 			})
 			logger = logger.Any("res_headers", responseHeader)
 		}
-		if config.Log.File.IncludeResponseBody {
+		if Conf.Log.File.IncludeResponseBody {
 			logger = logger.Bytes("res_body", res.Body())
 		}
 		go logger.Send()
 	}
-	if config.Metric.Enable {
+	if Conf.Metric.Enable {
 		go metric.Update(c)
 	}
 }
