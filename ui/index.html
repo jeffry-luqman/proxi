@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Metric</title>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
+  <script src="chart.js"></script>
+  <style>
+    canvas {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="count-by-status"></canvas>
+
+  <script>
+    let initialMetrics = {
+      successCount: 10,
+      warningCount: 30,
+      errorCount: 3
+    }
+
+    new Chart(document.getElementById('count-by-status').getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: ['Success', 'Warning', 'Error'],
+        datasets: [{
+          label: 'Level Count',
+          data: [
+            initialMetrics.successCount,
+            initialMetrics.warningCount,
+            initialMetrics.errorCount
+          ],
+          backgroundColor: [
+            'green',
+            'orange',
+            'red'
+          ]
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+      }
+    });
+
+    if (window["WebSocket"]) {
+      const protocol = document.location.protocol=="https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(protocol + "//" + document.location.host + "/ws");
+
+      ws.onopen = function () {
+        console.log('connected')
+      }
+
+      ws.onclose = function () {
+        console.log('disconnected')
+      }
+
+      ws.onmessage = function (e) {
+        let d = new Date();
+        let data = JSON.parse(e.data)
+        console.log(data)
+
+      }
+    } else {
+      console.log('unsupported')
+    }
+  </script>
+</body>
+</html>
