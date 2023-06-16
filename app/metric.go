@@ -5,13 +5,19 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
-	"github.com/fasthttp/websocket"
-	"github.com/valyala/fasthttp"
+	"github.com/gorilla/websocket"
 )
 
 var metric = &Metric{}
+
+var (
+	upgrader     = websocket.Upgrader{}
+	activeConn   = make(map[*websocket.Conn]struct{})
+	activeConnMu sync.Mutex
+)
 
 type Metric struct {
 	StartAt time.Time     `json:"start_at"`
@@ -213,47 +219,60 @@ func (m *Metric) Init() {
 	m.EndPointTotalDurationTotal = map[string]time.Duration{}
 	m.EndPointTotalLastCall = map[string]time.Time{}
 
-	metricPort := fmt.Sprintf("%v", Conf.Metric.Port)
+	go m.serve()
+}
+
+func (m *Metric) serve() {
+	port := fmt.Sprintf("%v", Conf.Metric.Port)
 	fmt.Println()
-	fmt.Println("Metric available at " + Fmt("http://localhost:"+metricPort, Magenta))
-	go func() {
-		metricServer := &fasthttp.Server{
-			Handler: m.metricHandler,
-		}
-		if err := metricServer.ListenAndServe(":" + metricPort); err != nil {
-			log.Fatal("Metric", Fmt(err.Error(), Red))
-		}
+	fmt.Println("Metric available at " + Fmt("http://localhost:"+port, Magenta))
+	http.HandleFunc("/", m.serveUI)
+	http.HandleFunc("/ws", m.serveWs)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		log.Fatal("Metric", Fmt(err.Error(), Red))
+	}
+}
+
+func (m *Metric) serveUI(w http.ResponseWriter, r *http.Request) {
+	filePath := r.URL.Path
+	if filePath == "/" {
+		filePath = "/index.html"
+	}
+	fileContent, err := Conf.MetricUI.ReadFile("ui" + filePath)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", http.DetectContentType(fileContent))
+	w.Write(fileContent)
+}
+
+func (m *Metric) serveWs(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+
+	activeConnMu.Lock()
+	activeConn[conn] = struct{}{}
+	activeConnMu.Unlock()
+
+	defer func() {
+		activeConnMu.Lock()
+		delete(activeConn, conn)
+		activeConnMu.Unlock()
+
+		conn.Close()
 	}()
 }
 
-func (m *Metric) metricHandler(ctx *fasthttp.RequestCtx) {
-	if string(ctx.Request.Header.Peek("Upgrade")) == "websocket" {
-		err := upgrader.Upgrade(ctx, func(ws *websocket.Conn) {
-			defer ws.Close()
-			for {
-				mt, message, err := ws.ReadMessage()
-				if err != nil {
-					log.Println("read:", err)
-					break
-				}
-				log.Printf("recv: %s", message)
-				err = ws.WriteMessage(mt, message)
-				if err != nil {
-					log.Println("write:", err)
-					break
-				}
-			}
-		})
+func (m *Metric) sendData(data []byte) {
+	activeConnMu.Lock()
+	defer activeConnMu.Unlock()
 
-		if err != nil {
-			if _, ok := err.(websocket.HandshakeError); ok {
-				log.Println(err)
-			}
-			return
-		}
-	} else {
-		b, _ := json.MarshalIndent(m, "", "  ")
-		fmt.Fprintf(ctx, string(b))
+	for conn := range activeConn {
+		conn.WriteMessage(websocket.TextMessage, data)
 	}
 }
 
@@ -552,5 +571,9 @@ func (m *Metric) Update(c *Ctx) {
 	}
 	if ldm, ok := m.EndPointTotalDurationMin[c.EndPoint+" "+c.Method]; !ok || c.Duration < ldm {
 		m.EndPointTotalDurationMin[c.EndPoint+" "+c.Method] = c.Duration
+	}
+	b, err := json.Marshal(m)
+	if err != nil {
+		m.sendData(b)
 	}
 }

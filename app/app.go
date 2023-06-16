@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/fasthttp/websocket"
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -23,7 +22,6 @@ var (
 		NoDefaultUserAgentHeader: true,
 		DisablePathNormalizing:   true,
 	}
-	upgrader   = websocket.FastHTTPUpgrader{}
 	fileLogger = zerolog.Logger{}
 )
 

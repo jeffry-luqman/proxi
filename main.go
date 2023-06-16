@@ -12,6 +12,8 @@ import (
 var ui embed.FS
 
 func main() {
+	app.Conf.MetricUI = ui
+
 	cmd := &cobra.Command{
 		Use:   "proxi",
 		Short: "Simple reverse proxy.",

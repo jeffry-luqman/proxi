@@ -1,5 +1,7 @@
 package app
 
+import "embed"
+
 var Conf = Config{
 	Port:    8181,
 	Targets: map[string]string{"/": "http://localhost:3000"},
@@ -22,6 +24,7 @@ type Config struct {
 	Targets   map[string]string `yaml:"targets"`
 	Log       LogConfig         `yaml:"log"`
 	Metric    MetricConfig      `yaml:"metric"`
+	MetricUI  embed.FS          `yaml:"-"`
 }
 
 type LogConfig struct {
