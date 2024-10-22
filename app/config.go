@@ -18,13 +18,14 @@ var Conf = Config{
 }
 
 type Config struct {
-	Port      int               `yaml:"port"`
-	UseStdlib bool              `yaml:"use_stdlib"`
-	TargetStr string            `yaml:"-"`
-	Targets   map[string]string `yaml:"targets"`
-	Log       LogConfig         `yaml:"log"`
-	Metric    MetricConfig      `yaml:"metric"`
-	MetricUI  embed.FS          `yaml:"-"`
+	Port         int               `yaml:"port"`
+	UseStdlib    bool              `yaml:"use_stdlib"`
+	PrintFullURL bool              `yaml:"print_full_url"`
+	TargetStr    string            `yaml:"-"`
+	Targets      map[string]string `yaml:"targets"`
+	Log          LogConfig         `yaml:"log"`
+	Metric       MetricConfig      `yaml:"metric"`
+	MetricUI     embed.FS          `yaml:"-"`
 }
 
 type LogConfig struct {

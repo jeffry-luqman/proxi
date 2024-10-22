@@ -28,6 +28,7 @@ func main() {
 	cmd.Flags().BoolVarP(&app.Conf.UseStdlib, "use-stdlib", "", app.Conf.UseStdlib, "Use net/http instead of fasthttp")
 	cmd.Flags().BoolVarP(&app.Conf.Log.Console.Disable, "quiet", "q", app.Conf.Log.Console.Disable, "Silence output on the terminal")
 	cmd.Flags().BoolVarP(&app.Conf.Log.Console.PrintRequestImmediately, "debug", "d", app.Conf.Log.Console.PrintRequestImmediately, "Print a request log to the terminal without waiting for a response")
+	cmd.Flags().BoolVarP(&app.Conf.PrintFullURL, "print-full-url", "f", app.Conf.PrintFullURL, "Print an full url instead of path only")
 	cmd.Flags().StringVarP(&app.Conf.Log.File.Filename, "log", "l", "", "Specify log file")
 	cmd.Flags().IntVarP(&app.Conf.Metric.Port, "metric", "m", app.Conf.Metric.Port, "Specify metric port")
 	err := cmd.Execute()

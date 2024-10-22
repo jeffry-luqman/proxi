@@ -61,7 +61,11 @@ func (c *Ctx) logging(res *fasthttp.Response, err error) {
 	c.StatusCode = res.Header.StatusCode()
 	c.Err = err
 	if Conf.Log.Console.Enable {
-		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + c.BaseURL + c.EndPoint
+		loggedURL := c.BaseURL + c.EndPoint
+		if Conf.PrintFullURL {
+			loggedURL = c.CompleteURL
+		}
+		consoleLog := c.FinishAt.Format(time.TimeOnly) + " " + c.fmtDuration() + "\t" + c.fmtStatus() + "\t" + c.Method + " " + loggedURL
 		if err != nil {
 			consoleLog += "\t" + Fmt(err.Error(), Red)
 		}
