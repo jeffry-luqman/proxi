@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -75,30 +76,39 @@ func Run() {
 
 func handler(c *fasthttp.RequestCtx) {
 	originalURL := string(c.Request.Header.RequestURI())
-	defer c.Request.SetRequestURI(originalURL)
-
-	pathPrefix, addr := getURL(originalURL)
-	c.Request.SetRequestURI(addr)
-
-	if scheme := getScheme(addr); len(scheme) > 0 {
-		c.Request.URI().SetSchemeBytes(scheme)
+	targetPrefix, targetURL, targetDir := getTarget(originalURL)
+	if targetDir != "" {
+		rootDir, stripSlashes, _ := strings.Cut(targetDir, " ")
+		stripSlashesInt, _ := strconv.Atoi(stripSlashes)
+		staticFileHandler := fasthttp.FSHandler(rootDir, stripSlashesInt)
+		staticFileHandler(c)
+	} else {
+		defer c.Request.SetRequestURI(originalURL)
+		c.Request.SetRequestURI(targetURL)
+		if scheme := getScheme(targetURL); len(scheme) > 0 {
+			c.Request.URI().SetSchemeBytes(scheme)
+		}
+		c.Request.Header.Del("Connection")
+		ctx := newCtx(&c.Request, originalURL, targetPrefix, targetURL)
+		err := client.Do(&c.Request, &c.Response)
+		ctx.logging(&c.Response, err)
+		c.Response.Header.Del("Connection")
 	}
-	c.Request.Header.Del("Connection")
-
-	ctx := newCtx(&c.Request, originalURL, pathPrefix, addr)
-	err := client.Do(&c.Request, &c.Response)
-	ctx.logging(&c.Response, err)
-
-	c.Response.Header.Del("Connection")
 }
 
-func getURL(originalURL string) (string, string) {
+func getTarget(originalURL string) (string, string, string) {
 	for k, v := range Conf.Targets {
 		if k != "/" && strings.HasPrefix(originalURL, k) {
-			return k, v + originalURL
+			if strings.HasPrefix(v, "http") {
+				return k, v + originalURL, ""
+			}
+			return k, v + originalURL, v
 		}
 	}
-	return "/", Conf.Targets["/"] + originalURL
+	if strings.HasPrefix(Conf.Targets["/"], "http") {
+		return "/", Conf.Targets["/"] + originalURL, ""
+	}
+	return "/", Conf.Targets["/"] + originalURL, Conf.Targets["/"]
 }
 
 func getScheme(s string) []byte {
