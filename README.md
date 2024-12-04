@@ -13,7 +13,7 @@ To install proxi, you can download a [prebuilt binary](https://github.com/jeffry
 
 ### Linux or Mac 64 bit
 ```
-curl https://github.com/jeffry-luqman/proxi/blob/main/install | bash
+curl https://raw.githubusercontent.com/jeffry-luqman/proxi/refs/heads/main/install | bash
 ```
 
 ### Windows 64 bit
