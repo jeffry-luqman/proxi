@@ -11,19 +11,15 @@ Proxi is a simple reverse proxy, allows you to forward HTTP requests from multip
 
 To install proxi, you can download a [prebuilt binary](https://github.com/jeffry-luqman/proxi/releases) and move the executable to the directory that has been added to the PATH environment variable, or you can simply use `go install` if you have [Go](https://go.dev) installed.
 
+### Linux or Mac 64 bit
+```
+curl https://github.com/jeffry-luqman/proxi/blob/main/install | bash
+```
+
 ### Windows 64 bit
 ```
-curl -OL https://github.com/jeffry-luqman/proxi/releases/download/v0.0.0/proxi-win64.exe && move proxi-win64.exe C:\Windows\System32\proxi.exe
-```
-
-### Mac 64 bit
-```
-curl -OL https://github.com/jeffry-luqman/proxi/releases/download/v0.0.0/proxi-mac64 && sudo mv proxi-mac64 /usr/local/bin/proxi && sudo chmod 755 /usr/local/bin/proxi
-```
-
-### Linux 64 bit
-```
-wget https://github.com/jeffry-luqman/proxi/releases/download/v0.0.0/proxi-linux64 && sudo mv proxi-linux64 /usr/local/bin/proxi && sudo chmod 755 /usr/local/bin/proxi
+curl -OL https://github.com/jeffry-luqman/proxi/releases/download/v0.0.1/proxi-win64.exe
+move proxi-win64.exe C:\Windows\System32\proxi.exe
 ```
 
 ### Using [go install](https://go.dev/ref/mod#go-install)

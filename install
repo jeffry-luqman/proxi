@@ -1,0 +1,15 @@
+#!/bin/bash
+
+os=$(uname)
+
+if [[ "$os" == "Linux" ]]; then
+    wget https://github.com/jeffry-luqman/proxi/releases/download/v0.0.1/proxi-linux64
+    sudo mv proxi-linux64 /usr/local/bin/proxi
+    sudo chmod 755 /usr/local/bin/proxi
+elif [[ "$os" == "Darwin" ]]; then
+    curl -OL https://github.com/jeffry-luqman/proxi/releases/download/v0.0.1/proxi-mac64
+    sudo mv proxi-mac64 /usr/local/bin/proxi
+    sudo chmod 755 /usr/local/bin/proxi
+else
+    echo "Your OS $os is currently not supported"
+fi
